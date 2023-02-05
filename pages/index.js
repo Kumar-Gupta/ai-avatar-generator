@@ -1,8 +1,75 @@
+import { useState } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import buildspaceLogo from '../assets/buildspace-logo.png';
 
 const Home = () => {
+   // Don't retry more than 20 times
+   const maxRetries = 20;
+
+  //creating a state property
+  const [input, setInput] = useState('');
+
+  //image state property
+  const [img, setImg] = useState(''); 
+
+  // Numbers of retries 
+  const [retry, setRetry] = useState(0);
+
+  // Number of retries left
+  const [retryCount, setRetryCount] = useState(maxRetries);
+
+  //function for input
+  const onChange = (event) => {
+    setInput(event.target.value);
+  };
+
+  //button generator action
+  const generateAction = async () => {
+    console.log('Generating...');	
+    
+     // If this is a retry request, take away retryCount
+     if (retry > 0) {
+      setRetryCount((prevState) => {
+        if (prevState === 0) {
+          return 0;
+        } else {
+          return prevState - 1;
+        }
+      });
+
+      setRetry(0);
+    }
+
+
+    //fetch request
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'image/jpeg',
+      },
+      body: JSON.stringify({ input }),
+    });
+    
+    const data = await response.json();
+
+    //if model is still loading drop that retry time 
+    if (response.status === 503) {
+      console.log('Model is loading still :(.')
+      return;
+    }
+
+    //if any other Error
+    if (!response.ok) {
+      console.log(`Error: ${data.error}`);
+      return;
+    }
+
+    //set image data into state property
+    setImg(data.image);
+    };
+
+
   return (
     <div className="root">
       <Head>
@@ -11,11 +78,21 @@ const Home = () => {
       <div className="container">
         <div className="header">
           <div className="header-title">
-            <h1>your generator one-liner</h1>
+            <h1>Kuman Generator</h1>
           </div>
           <div className="header-subtitle">
-            <h2>description of your generator</h2>
+            <h2>Turn me into Anything you like but keep one thing in mind that you address me as "Kuman"</h2>
           </div>
+        <div className="prompt-container">
+          <input className="prompt-box" value={input} onChange={onChange} />
+          <div className="prompt-buttons">
+    <a className="generate-button" onClick={generateAction} >
+      <div className="generate">
+        <p>Generate</p>
+      </div>
+    </a>
+  </div>
+        </div>
         </div>
       </div>
       <div className="badge-container grow">
