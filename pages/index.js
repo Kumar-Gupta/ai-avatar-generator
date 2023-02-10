@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import buildspaceLogo from '../assets/buildspace-logo.png';
@@ -18,6 +18,8 @@ const Home = () => {
 
   // Number of retries left
   const [retryCount, setRetryCount] = useState(maxRetries);
+// Add isGenerating state
+  const [isGenerating, setIsGenerating] = useState(false);
 
   //function for input
   const onChange = (event) => {
@@ -28,6 +30,12 @@ const Home = () => {
   const generateAction = async () => {
     console.log('Generating...');	
     
+    // Add this check to make sure there is no double click
+  if (isGenerating && retry === 0) return;
+
+  // Set loading has started
+  setIsGenerating(true);
+
      // If this is a retry request, take away retryCount
      if (retry > 0) {
       setRetryCount((prevState) => {
@@ -55,20 +63,55 @@ const Home = () => {
 
     //if model is still loading drop that retry time 
     if (response.status === 503) {
-      console.log('Model is loading still :(.')
+      // Set the estimated_time property in state
+      setRetry(data.estimated_time);
       return;
     }
 
     //if any other Error
     if (!response.ok) {
       console.log(`Error: ${data.error}`);
+      // Stop loading
+    setIsGenerating(false);
       return;
     }
 
     //set image data into state property
     setImg(data.image);
+      // Everything is all done -- stop loading!
+  setIsGenerating(false);
     };
 
+    
+    const sleep = (ms) => {
+      return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+      });
+    };
+
+     // Add useEffect here
+    useEffect(() => {
+      const runRetry = async () => {
+        if (retryCount === 0) {
+          console.log(`Model still loading after ${maxRetries} retries. Try request again in 5 minutes.`);
+          setRetryCount(maxRetries);
+          return;
+          }
+  
+        console.log(`Trying again in ${retry} seconds.`);
+  
+        await sleep(retry * 1000);  
+  
+        await generateAction();
+      };
+  
+      if (retry === 0) {
+        return;
+      }
+  
+      runRetry();
+    }, [retry]);
+  
 
   return (
     <div className="root">
@@ -85,10 +128,19 @@ const Home = () => {
           </div>
         <div className="prompt-container">
           <input className="prompt-box" value={input} onChange={onChange} />
-          <div className="prompt-buttons">
-    <a className="generate-button" onClick={generateAction} >
+          <div className="prompt-buttons">  
+          {/* Tweak classNames to change classes */}
+    <a className={
+        isGenerating ? 'generate-button loading' : 'generate-button'
+      }
+       onClick={generateAction} >
+        {/* Tweak to show a loading indicator */}
       <div className="generate">
-        <p>Generate</p>
+      {isGenerating ? (
+          <span className="loader"></span>
+        ) : (
+          <p>Generate</p> 
+        )}
       </div>
     </a>
   </div>

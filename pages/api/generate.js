@@ -2,11 +2,11 @@ const generateAction = async (req, res) => {
     console.log('Received request');
 
     //Go input from the body of the request .i.e.  grabbing the input from our request
-    const input = JSON.parse(req.body).input;   
+    const input = JSON.parse(req.body).input; 
 
     // Add fetch request to Hugging Face
-  const response = await fetch(
-    `https://huggingface.co/Kumar-kun/kuman-generator`,
+ const response = await fetch(
+    `https://api-inference.huggingface.co/models/Kumar-kun/kuman-generator`,
     {
       headers: {
         Authorization: `Bearer ${process.env.HF_AUTH_KEY}`,
@@ -21,10 +21,10 @@ const generateAction = async (req, res) => {
   
   // Check for different statuses to send proper payload
   if (response.ok) {
-      const buffer = await response.arrayBuffer();
+    const buffer = await response.arrayBuffer();
     res.status(200).json({ image: buffer });
   } else if (response.status === 503) {
-      const json = await response.json();
+    const json = await response.json();
     res.status(503).json(json);
   } else {
     const json = await response.json();
